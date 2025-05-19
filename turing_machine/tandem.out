@@ -1,0 +1,65 @@
+start: s
+accept: ac
+reject: rj
+blank: _
+
+s _ -> ac _ ^
+s 0 -> findCenterRight a >
+s 1 -> findCenterRight b >
+
+findCenterRight 0 -> findCenterRight 0 >
+findCenterRight 1 -> findCenterRight 1 >
+findCenterRight _ -> putAndToLeft _ <
+findCenterRight a -> putAndToLeft a <
+findCenterRight b -> putAndToLeft b <
+
+putAndToLeft 0 -> findCenterLeft a <
+putAndToLeft 1 -> findCenterLeft b <
+
+findCenterLeft 0 -> findCenterLeft 0 <
+findCenterLeft 1 -> findCenterLeft 1 <
+findCenterLeft a -> putAndToRight a >
+findCenterLeft b -> putAndToRight b >
+
+putAndToRight 0 -> findCenterRight a >
+putAndToRight 1 -> findCenterRight b >
+
+putAndToRight a -> preWaitFor0 0 <
+putAndToRight b -> preWaitFor1 1 <
+
+preWaitFor0 a -> preWaitFor0 a <
+preWaitFor0 b -> preWaitFor0 b <
+
+preWaitFor1 a -> preWaitFor1 a <
+preWaitFor1 b -> preWaitFor1 b <
+
+preWaitFor0 0 -> waitFor0 0 >
+preWaitFor0 1 -> waitFor0 1 >
+preWaitFor0 _ -> waitFor0 _ >
+preWaitFor1 0 -> waitFor1 0 >
+preWaitFor1 1 -> waitFor1 1 >
+preWaitFor1 _ -> waitFor1 _ >
+
+waitFor0 a -> preCollect 0 >
+waitFor1 b -> preCollect 1 >
+
+preCollect a -> preCollect a >
+preCollect b -> preCollect b >
+preCollect 0 -> collect 0 >
+preCollect 1 -> collect 1 >
+
+collect _ -> ac _ ^
+collect 0 -> collect 0 >
+collect 1 -> collect 1 >
+collect a -> prePreWaitFor0 0 <
+collect b -> prePreWaitFor1 1 < 
+
+prePreWaitFor0 0 -> prePreWaitFor0 0 <
+prePreWaitFor0 1 -> prePreWaitFor0 1 <
+prePreWaitFor1 0 -> prePreWaitFor1 0 <
+prePreWaitFor1 1 -> prePreWaitFor1 1 <
+
+prePreWaitFor0 a -> preWaitFor0 a ^
+prePreWaitFor0 b -> preWaitFor0 b ^
+prePreWaitFor1 a -> preWaitFor1 a ^
+prePreWaitFor1 b -> preWaitFor1 b ^

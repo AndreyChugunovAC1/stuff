@@ -1,0 +1,71 @@
+start: s
+accept: ac
+reject: rj
+blank: _
+
+s 0 -> startNewNumber 0 <
+s 1 -> startNewNumber 1 <
+
+startNewNumber _ -> collect = >
+
+collect 0 -> collect 0 >
+collect 1 -> collect 1 >
+collect = -> collect = >
+collect + -> rememberDigit + <
+collect _ -> removeTrailingZeros _ <
+removeTrailingZeros = -> removeTrailingZeros _ <
+
+rememberDigit 0 -> got0 + >
+rememberDigit 1 -> got1 + >
+rememberDigit = -> got0 = >
+
+got0 + -> got0 + >
+got0 1 -> got0 1 >
+got0 0 -> got0 0 >
+got0 _ -> rememberingSecondDigit0 _ <
+
+got1 + -> got1 + >
+got1 1 -> got1 1 >
+got1 0 -> got1 0 >
+got1 _ -> rememberingSecondDigit1 _ <
+
+rememberingSecondDigit0 0 -> adding0 _ <
+rememberingSecondDigit0 + -> adding0 _ <
+rememberingSecondDigit0 1 -> adding1 _ <
+
+rememberingSecondDigit1 0 -> adding1 _ <
+rememberingSecondDigit1 + -> adding1 _ <
+rememberingSecondDigit1 1 -> adding2 _ <
+
+adding0 0 -> adding0 0 <
+adding0 1 -> adding0 1 <
+adding0 + -> adding0 + <
+adding0 = -> adding0 = <
+adding0 _ -> collect 0 >
+
+adding1 0 -> adding1 0 <
+adding1 1 -> adding1 1 <
+adding1 + -> adding1 + <
+adding1 = -> adding1 = <
+adding1 _ -> collect 1 >
+
+
+adding2 0 -> adding2 0 <
+adding2 1 -> adding2 1 <
+adding2 + -> adding2 + <
+adding2 = -> adding2 = <
+
+adding2 _ -> putAmpersant 0 <
+putAmpersant _ -> collect & >
+
+adding0 & -> collect 1 >
+adding1 & -> putAmpersant 0 <
+adding2 & -> putAmpersant 1 <
+
+removeTrailingZeros 0 -> removeTrailingZeros 0 <
+removeTrailingZeros 1 -> removeTrailingZeros 1 <
+removeTrailingZeros _ -> removingTrailingZeros _ >
+
+removingTrailingZeros 0 -> removingTrailingZeros _ >
+removingTrailingZeros 1 -> ac 1 ^
+removingTrailingZeros _ -> ac 0 ^

@@ -1,0 +1,39 @@
+start: s
+accept: ac
+reject: rj
+blank: _
+
+s 0 -> runRight 0 >
+s 1 -> runRight 1 >
+
+runRight 0 -> runRight 0 >
+runRight 1 -> runRight 1 >
+runRight _ -> collect _ <
+
+collect a -> collect a <
+collect b -> collect b <
+collect 0 -> got0 a >
+collect 1 -> got1 b >
+
+got0 a -> got0 a >
+got0 b -> got0 b >
+got0 0 -> got0 0 >
+got0 1 -> got0 1 >
+got0 _ -> preCollect 0 <
+
+got1 a -> got1 a >
+got1 b -> got1 b >
+got1 0 -> got1 0 >
+got1 1 -> got1 1 >
+got1 _ -> preCollect 1 <
+
+preCollect 0 -> preCollect 0 <
+preCollect 1 -> preCollect 1 <
+preCollect a -> collect a <
+preCollect b -> collect b <
+
+collect _ -> revertab _ >
+revertab a -> revertab _ >
+revertab b -> revertab _ >
+revertab 0 -> ac 0 ^
+revertab 1 -> ac 1 ^

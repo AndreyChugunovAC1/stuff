@@ -1,0 +1,38 @@
+start: s
+accept: ac
+reject: rj
+blank: _
+
+s 0 -> runLeft 0 >
+s 1 -> runLeft 1 >
+
+runLeft 0 -> runLeft 0 >
+runLeft 1 -> runLeft 1 >
+runLeft a -> runLeft a >
+runLeft b -> runLeft b >
+runLeft < -> run < >
+
+run 0 -> run 0 >
+run 1 -> run 1 >
+run a -> remember a <
+run b -> remember b <
+run _ -> remember _ <
+
+remember 0 -> gotRight0 a <
+remember 1 -> gotRight1 b <
+
+gotRight0 0 -> gotRight0 0 <
+gotRight0 1 -> gotRight0 1 <
+gotRight1 0 -> gotRight1 0 <
+gotRight1 1 -> gotRight1 1 <
+gotRight0 < -> got0 < <
+gotRight1 < -> got1 < <
+
+got0 a -> got0 a <
+got0 b -> got0 b <
+got1 a -> got1 a <
+got1 b -> got1 b <
+
+got0 0 -> runLeft a ^
+got1 0 -> runLeft a ^
+got1 1 -> runLeft b ^

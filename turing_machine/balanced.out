@@ -1,0 +1,29 @@
+start: s
+accept: ac
+reject: rj
+blank: _
+
+s _ -> ac _ ^
+s ( -> runRight ( ^
+
+runRight ) -> runRight ) >
+runRight ( -> removeOpen ( >
+runRight * -> runRight * >
+runRight _ -> runLeftEmpty _ <
+
+runLeftEmpty ) -> runLeft ) <
+runLeftEmpty ( -> runLeft ( <
+runLeftEmpty * -> runLeftEmpty * <
+runLeftEmpty _ -> ac _ ^
+
+runLeft ) -> runLeft ) <
+runLeft ( -> runLeft ( <
+runLeft * -> runLeft * <
+runLeft _ -> runRight _ >
+
+removeOpen * -> removeOpen * >
+removeOpen ( -> removeOpen ( >
+removeOpen ) -> removeClose * <
+
+removeClose * -> removeClose * <
+removeClose ( -> runRight * >
