@@ -1,5 +1,4 @@
 import std;
-import core.internal.gc.impl.conservative.gc;
 
 interface Tape {
   char get();
