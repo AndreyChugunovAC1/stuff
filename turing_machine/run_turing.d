@@ -1,49 +1,80 @@
-module run_turing;
-
 import std;
+import core.internal.gc.impl.conservative.gc;
 
-class Line {
+interface Tape {
+  char get();
+  void put(char);
+  void move(int delta);
+  void printState(string from, string to);
+}
+
+class GrowingTape : Tape {
   private {
-    enum HALF_LINE_LENGTH = 1000;
     enum HALF_PRESENT_LENGTH = 20;
-    enum CUR_POS = "^".center(2 * HALF_PRESENT_LENGTH + 1);
-    char[HALF_LINE_LENGTH * 2] line;
-    int ind = HALF_LINE_LENGTH;
+    enum CUR_POS = "^".center(HALF_PRESENT_LENGTH * 2 + 1);
+    char[] left, right;
+    int ind;
+    char blank;
+
+    ref char opIndex(int ind) {
+      if (ind < 0) {
+        ind = -ind - 1;
+        if (to!size_t(ind) >= left.length) {
+          return blank;
+        }
+        return left[to!size_t(ind)];
+      }
+      if (to!size_t(ind) >= right.length) {
+        return blank;
+      }
+      return right[to!size_t(ind)];
+    }
+
+    void expand(ref char[] arr, size_t newLength) {
+      size_t prevLength = arr.length;
+
+      arr.length = newLength;
+      arr[prevLength .. newLength] = blank;
+    }
   }
 
-  this(string input, char blank = '_') {
-    line[] = blank;
-    foreach (i, ch; input) {
-      line[ind + i] = ch;
-    }
+  this(const(char[]) input, char blank) {
+    ind = 0;
+    right = input.dup;
+    this.blank = blank;
   }
 
   char get() {
-    return line[ind];
-  }
-
-  void move(int delta) {
-    assert(abs(delta) <= 1);
-    ind += delta;
+    return this[ind];
   }
 
   void put(char ch) {
-    line[ind] = ch;
+    this[ind] = ch;
   }
 
-  void printStateCentered(string from, string to) {
-    writeln(line[ind - HALF_PRESENT_LENGTH .. ind + HALF_PRESENT_LENGTH]);
-    writeln(CUR_POS);
+  void move(int delta) {
+    assert(delta >= -1 && delta <= 1);
+    ind += delta;
+    auto newLength = (size_t len) => (len + 1) * 3 / 2;
+
+    if (ind >= 0 && to!size_t(ind) >= right.length) {
+      expand(right, newLength(right.length));
+    }
+    if (ind < 0 && to!size_t(-ind - 1) >= left.length) {
+      expand(left, newLength(left.length));
+    }
   }
 
   void printState(string from, string to) {
-    write(line[HALF_LINE_LENGTH - HALF_PRESENT_LENGTH .. HALF_LINE_LENGTH + HALF_PRESENT_LENGTH + 1]);
-    writefln!" :: %s -> %s"(from, to);
-    if (ind + HALF_PRESENT_LENGTH > HALF_LINE_LENGTH) {
-      writeln(' '.repeat(ind + HALF_PRESENT_LENGTH - HALF_LINE_LENGTH).array ~ "^");
-    } else {
-      writeln();
+    char[2 * HALF_PRESENT_LENGTH + 1] output;
+    size_t strIndex = 0;
+
+    foreach (i; ind - HALF_PRESENT_LENGTH .. ind + HALF_PRESENT_LENGTH + 1) {
+      output[strIndex++] = this[i];
     }
+    write(output);
+    writefln!" :: %s -> %s"(from, to);
+    writeln(CUR_POS);
   }
 }
 
@@ -66,65 +97,111 @@ void main(string[] args) {
     writeln("Usage: rdmd run_turing.d <your_turing_machine> <\"your_input\">");
     return;
   }
-  string root, accept, reject;
+  string root;
+  bool[string] accept, reject;
   char blank;
   Node[string] nodeByName;
+  bool wasError = false;
 
   auto inFile = File(args[1], "r");
-  inFile.byLine
-    .filter!(s => !s.strip.empty)
-    .filter!(s => !s.startsWith("//"))
-    .map!(s => s.splitter.map!(to!string).array)
-    .each!((string[] s) {
-      switch (s[0]) {
-      case "start:":
-        root = s[1];
-        break;
-      case "accept:":
-        accept = s[1];
-        break;
-      case "reject:":
-        reject = s[1];
-        break;
-      case "blank:":
-        blank = s[1][0];
-        break;
-      default:
-        string curName = s[0];
-        char curChar = s[1][0];
-        string nextName = s[3];
-        char nextChar = s[4][0];
-        int delta = 0;
+  foreach (sPair; zip(inFile.byLine, iota!size_t(1, size_t.max))
+    .filter!(s => !s[0].strip.empty)
+    .filter!(s => !s[0].startsWith("//"))
+    .map!(s => Tuple!(string[], size_t)(s[0].splitter.map!(to!string).array, s[1]))) {
+    string[] line = sPair[0];
 
-        switch (s[5]) {
-        case ">":
-          delta = 1;
-          break;
-        case "<":
-          delta = -1;
-          break;
-        default:
-          break;
-        }
-        Node cur = nodeByName.require(curName, new Node);
-        nodeByName.require(nextName, new Node);
-        cur.next[curChar] = Node.Next(delta, nextChar, nextName);
+    switch (line[0]) {
+    case "start:":
+      if (line.length != 2) {
+        writefln!"Incorrect \"start\" format [line: %s]"(sPair[1]);
+        writeln("Format: \"start: <single_state>\"");
+        wasError = true;
         break;
       }
-    });
-  auto line = new Line(args[2], blank);
-  line.printState("", root);
-  while (root != accept && root != reject) {
-    auto nexts = nodeByName[root].next;
+      root = line[1];
+      break;
+    case "accept:":
+      if (line.length < 2) {
+        writefln!"Incorrect \"accept\" format [line: %s]"(sPair[1]);
+        writeln("Format: \"accept: <state1> <state2> ...\"");
+        wasError = true;
+        break;
+      }
+      foreach (state; line[1 .. $]) {
+        accept[state] = true;
+      }
+      break;
+    case "reject:":
+      if (line.length < 2) {
+        writefln!"Incorrect \"reject\" format [line: %s]"(sPair[1]);
+        writeln("Format: \"reject: <state1> <state2> ...\"");
+        wasError = true;
+        break;
+      }
+      foreach (state; line[1 .. $]) {
+        reject[state] = true;
+      }
+      break;
+    case "blank:":
+      if (line.length < 2 || line[1].length > 1) {
+        writefln!"Incorrect \"blank\" format [line: %s]"(sPair[1]);
+        writeln("Format: \"blank: <one_symbol>\"");
+        wasError = true;
+        break;
+      }
+      blank = line[1][0];
+      break;
+    default:
+      enum stateFormat = () {
+        writeln("Format: state1 s1 -> state2 s2 <|>|^");
+      };
+      if (line.length != 6 || line[2] != "->") {
+        writefln!"Incorrect state format [line: %s]"(sPair[1]);
+      }
+      string curName = line[0];
+      char curChar = line[1][0];
+      string nextName = line[3];
+      char nextChar = line[4][0];
+      int delta = 0;
 
-    if (line.get !in nexts) {
-      line.printState(root, reject);
+      switch (line[5]) {
+      case ">":
+        delta = 1;
+        break;
+      case "<":
+        delta = -1;
+        break;
+      case "^":
+        delta = 0;
+        break;
+      default:
+        writefln!"Incorrect move format: expected \"<\", \">\" or \"^\" [line: %s]"(sPair[1]);
+        wasError = true;
+        break;
+      }
+      Node cur = nodeByName.require(curName, new Node);
+      nodeByName.require(nextName, new Node);
+      cur.next[curChar] = Node.Next(delta, nextChar, nextName);
       break;
     }
-    Node.Next next = nexts[line.get];
-    line.put(next.ch);
-    line.move(next.delta);
-    line.printState(root, next.next);
+  }
+  inFile.close();
+  if (wasError) {
+    return;
+  }
+  Tape tape = new GrowingTape(args[2], blank);
+  tape.printState("", root);
+  while (root !in accept && root !in reject) {
+    auto nexts = nodeByName[root].next;
+
+    if (tape.get !in nexts) {
+      tape.printState(root, reject.keys.front);
+      break;
+    }
+    Node.Next next = nexts[tape.get];
+    tape.put(next.ch);
+    tape.move(next.delta);
+    tape.printState(root, next.next);
     root = next.next;
   }
 }

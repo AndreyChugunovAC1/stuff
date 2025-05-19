@@ -1,0 +1,11 @@
+start: s aaa
+accept:
+reject:
+blank: __
+
+s _ -> runRight # >
+runRight _ -> runLeft # <
+runRight # -> runRight # >
+runLeft # -> runLeft # ^
+runLeft # -> runLeft # ^
+runLeft _ -> runRight # ;
