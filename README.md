@@ -1,2 +1,2 @@
-# stuff
-Entire stuff
+# Entire Stuff
+1. Интерпретатор машины тьюринга с примерами

@@ -1,3 +1,5 @@
+module run_turing;
+
 import std;
 
 class Line {
@@ -35,7 +37,6 @@ class Line {
   }
 
   void printState(string from, string to) {
-    // printStateCentered(from, to);
     write(line[HALF_LINE_LENGTH - HALF_PRESENT_LENGTH .. HALF_LINE_LENGTH + HALF_PRESENT_LENGTH + 1]);
     writefln!" :: %s -> %s"(from, to);
     if (ind + HALF_PRESENT_LENGTH > HALF_LINE_LENGTH) {
