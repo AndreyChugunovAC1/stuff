@@ -7,3 +7,4 @@ ssh-add "$path"
 killall ssh-agent
 ssh-agent
 echo "Now try visiting https://docs.github.com/en/authentication/troubleshooting-ssh/error-host-key-verification-failed"
+echo "Do not forget to add public key to Github: https://github.com/settings/keys"
